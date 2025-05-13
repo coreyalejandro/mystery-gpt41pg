@@ -1,55 +1,88 @@
-#!/usr/bin/env python3
-
 # -----------------------------------------------------------------------------
-# Preswald Dashboard: "Mystery of the Vanishing Profits"
+# Preswald Dashboard: "Magnum, B.I. & The Mystery of the Vanishing Profits
 # Side-bar adds branding, table of contents, detective reflections, and images.
 # Main area presents 10 narrative-driven visualizations in themed detective style.
 # -----------------------------------------------------------------------------
 
 import pandas as pd
 import plotly.express as px
-from preswald import (
-    get_df, text, plotly, selectbox, slider, sidebar, image
-)
+from preswald import text, plotly, table, sidebar, get_df, selectbox, slider, connect
 
-# -----------------------------------------------------------------------------
-# SIDEBAR SETUP (Always rendered first)
-# -----------------------------------------------------------------------------
+connect()
 
-sidebar()
-image("images/detective_logo.png")
-text("### 🕵️‍♂️ Magnum B.I.'s Master Casebook")
-text("_Cracking the case of missing profits, one clue at a time..._")
-text("---")
-text("#### Table of Contents")
+# --- Header ---
+text("# Magnum, B.I.: The Case of the Vanishing Profits")
+
+# --- Welcome Message ---
 text("""
-1. The Big Picture  
-2. Sales and Profit Over Time  
-3. Regional Suspicions  
-4. Category Clues  
-5. Top & Bottom Performers  
-6. The Discount Trap  
-7. Impact of Returns  
-8. Profit Margin Heatmap  
-9. Timeline of Trouble  
-10. The Final Case File
+Welcome, Detective Partner. I'm Magnum B.I.—a specialist in unsolved business mysteries.
+The CEO of Superstore has called us in: Sales are soaring, numbers look golden on paper, but profits aren't showing up where expected. Something's fishy in the books and it's up to us to follow the data trail.
 """)
-text("---")
-text("#### 📝 Detective's Reflection")
+
+# Define a rich, deep color palette
+COLOR_PALETTE = [
+    "#1E3D59",  # Deep Navy Blue
+    "#FF6B6B",  # Rich Coral Red
+    "#4B8F8C",  # Deep Teal
+    "#7B2CBF",  # Rich Purple
+    "#FFC13B",  # Deep Gold
+    "#2D6A4F",  # Forest Green
+    "#9E2A2B",  # Deep Wine Red
+    "#335C67",  # Steel Blue
+    "#B68D40",  # Rich Bronze
+    "#540B0E"   # Deep Burgundy
+]
+
+# Utility: Convert all datetime columns to string for serialization
+
+def stringify_dates(df):
+    df = df.copy()
+    for col in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].astype(str)
+    return df
+
+
+# --- Sidebar ---
+sidebar(text("# Magnum, B.I."))
+sidebar(text("## Mystery of the Vanishing Profits"))
+sidebar(text("---"))
+sidebar(text("Explore the dramatic story of sales and profits through interactive visualizations."))
+
+# --- Data Loading and Preprocessing ---
+df = get_df("merged_data")
+df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+df["Profit"] = pd.to_numeric(df["Profit"], errors="coerce")
+df["Sales"] = pd.to_numeric(df["Sales"], errors="coerce")
+df["Discount"] = pd.to_numeric(df["Discount"], errors="coerce")
+df["Year"] = df["Order Date"].dt.year
+df["Month"] = df["Order Date"].dt.strftime('%Y-%m')
+df["Profit Margin %"] = df["Profit"] / df["Sales"] * 100
+df["Returned"] = df["Returned"].astype(str)
+
+
+
+# --- Onboarding Section ---
 text("""
-_Every number is a clue. The data never lies.  
-Stay vigilant, detective — the next case is always around the corner!_
+This interactive dashboard takes you on a journey through the Superstore's performance data.
+Through a series of compelling visualizations, we'll uncover the stories hidden in the numbers
+and reveal insights that can drive business success.
 """)
-text("---")
-text("_'Detective work is data work.'_ — Magnum B.I.")
 
-# -----------------------------------------------------------------------------
-# MAIN CASE FILE – DATA AND VISUALS
-# -----------------------------------------------------------------------------
-
-text("# 🕵️ Mystery of the Vanishing Profits")
 text("""
-**Case File: Superstore – The Vanishing Profits**
+### How to Navigate
+- 🔍 Use filters to explore different aspects of the data
+- 📊 Hover over charts for detailed information
+- 💡 Look for insights below each visualization
+""")
+
+
+
+
+# --- Main Case File ---
+text("## Main Case File")
+text("""
+**Case File: Superstore - The Vanishing Profits**
 
 Welcome, Detective Partner. I'm Magnum B.I.—a specialist in unsolved business mysteries. 
 The CEO of Superstore has called us in: Sales are soaring, numbers look golden on paper, but profits aren't showing up where expected. Something's fishy in the books and it's up to us to follow the data trail.
@@ -63,31 +96,12 @@ The CEO of Superstore has called us in: Sales are soaring, numbers look golden o
 Ready to crack the case? Let's follow the trail!
 """)
 
-# ----
-# Load DataFrame (must be named 'merged_data')
-# ----
-df = get_df("merged_data")
-if df is None:
-    raise RuntimeError("Could not load DataFrame for 'merged_data'. Check your preswald.toml and data file.")
-
-# Ensure types are correct for filtering/plotting
-df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
-df["Profit"] = pd.to_numeric(df["Profit"], errors="coerce")
-df["Sales"] = pd.to_numeric(df["Sales"], errors="coerce")
-df["Discount"] = pd.to_numeric(df["Discount"], errors="coerce")
-df["Year"] = df["Order Date"].dt.year
-df["Month"] = df["Order Date"].dt.strftime('%Y-%m')
-df["Profit Margin %"] = df["Profit"] / df["Sales"] * 100
-df["Returned"] = df["Returned"].astype(str)
-
-# ----
 # Utility for categories/regions
 categories = ["All"] + sorted([str(x) for x in df["Category"].unique() if pd.notnull(x)])
 regions = ["All"] + sorted([str(x) for x in df["Region"].unique() if pd.notnull(x)])
 
-# ========================================
-# 1. CHAPTER 1: The Big Picture — Sales vs Profit
-# ========================================
+
+# --- Chapter 1 ---
 text("## Chapter 1: The Big Picture — Sales vs. Profit Overview")
 text("""
 > **Clue 1:** Are big sales always big profit?  
@@ -112,9 +126,8 @@ fig1.update_layout(legend_title_text='Region', height=450)
 plotly(fig1)
 text("> _Magnum B.I.: Some categories look profitable, others risky. Let's see what the calendar tells us..._")
 
-# ========================================
-# 2. CHAPTER 2: Sales and Profit Over Time
-# ========================================
+
+# --- Chapter 2 ---
 text("## Chapter 2: The Flow of Time — Sales & Profit Trends")
 text("""
 > **Clue 2:** Do profits follow sales, or diverge?  
@@ -137,9 +150,8 @@ fig2.update_layout(legend_title_text="", height=400)
 plotly(fig2)
 text("> _Magnum B.I.: Do profits lag behind sales, or split off? Time to go regional..._")
 
-# ========================================
-# 3. CHAPTER 3: Regional Suspicions
-# ========================================
+
+# --- Chapter 3 ---
 text("## Chapter 3: Regional Suspicions")
 text("""
 > **Clue 3:** Do all regions pull their weight?  
@@ -158,9 +170,8 @@ fig3.update_layout(legend_title_text="", height=400)
 plotly(fig3)
 text("> _Magnum B.I.: Some regions might be innocent, others suspicious. What about the product lineup?_")
 
-# ========================================
-# 4. CHAPTER 4: Category Clues
-# ========================================
+
+# --- Chapter 4 ---
 text("## Chapter 4: Category Clues")
 text("""
 > **Clue 4:** What's hiding in each category?  
@@ -179,9 +190,8 @@ fig4.update_layout(barmode='stack', height=450, legend_title_text='Sub-Category'
 plotly(fig4)
 text("> _Magnum B.I.: Do some sub-categories betray our trust? Let's spotlight the star and villain performers..._")
 
-# ========================================
-# 5. CHAPTER 5: Top & Bottom Performers
-# ========================================
+
+# --- Chapter 5 ---
 text("## Chapter 5: Top and Bottom Performers")
 text("""
 > **Clue 5:** Who's making bank—and who's a drain?  
@@ -212,9 +222,8 @@ plotly(fig5)
 
 text("> _Magnum B.I.: Surprised by any 'villains' at the bottom? The price of a sale is about to get murkier..._")
 
-# ========================================
-# 6. CHAPTER 6: The Discount Trap
-# ========================================
+
+# --- Chapter 6 ---
 text("## Chapter 6: The Discount Trap")
 text("""
 > **Clue 6:** Are discounts more foe than friend?  
@@ -247,9 +256,8 @@ plotly(fig6)
 
 text("> _Magnum B.I.: Is there a point where too much discount means all profit's lost? Now, what about returns?_")
 
-# ========================================
-# 7. CHAPTER 7: Impact of Returns
-# ========================================
+
+# --- Chapter 7 ---
 text("## Chapter 7: Impact of Returns")
 text("""
 > **Clue 7:** Returns—the unseen profit thief?  
@@ -276,9 +284,8 @@ plotly(fig7)
 
 text("> _Magnum B.I.: Who knew returns could bleed a region dry? Let's look at profitability in sharper focus..._")
 
-# ========================================
-# 8. CHAPTER 8: Profit Margin Heatmap
-# ========================================
+
+# --- Chapter 8 ---
 text("## Chapter 8: Profit Margin Heatmap")
 text("""
 > **Clue 8:** Where does profit really melt away?  
@@ -305,9 +312,8 @@ plotly(fig8)
 
 text("> _Magnum B.I.: Which combination is our biggest danger zone? Let's trace when trouble built up..._")
 
-# ========================================
-# 9. CHAPTER 9: Timeline of Trouble
-# ========================================
+
+# --- Chapter 9 ---
 text("## Chapter 9: Timeline of Trouble")
 text("""
 > **Clue 9:** When did things start sinking?  
@@ -333,9 +339,8 @@ else:
 
 text("> _Magnum B.I.: Trouble might come in waves—or as a timeless drip. Who are the real culprits?_")
 
-# ========================================
-# 10. CHAPTER 10: The Final Case File
-# ========================================
+
+# --- Chapter 10 ---
 text("## Chapter 10: The Final Case File")
 text("""
 > **Final Clue:** Who—or what—is truly to blame?  
@@ -373,6 +378,8 @@ fig10.update_traces(textinfo='percent+label', pull=[0.07 if label == 'Returns' e
 fig10.update_layout(height=400)
 plotly(fig10)
 
+
+
 text("""
 **Case Closed:**  
 So detective, who's the true culprit behind Superstore's vanishing profits?  
@@ -381,3 +388,12 @@ Whatever you decide, you've followed the data trail with true detective grit!
 
 **Thank you for helping Magnum B.I. close the Mystery of the Vanishing Profits. Case dismissed!**
 """)
+
+table(stringify_dates(df))
+
+
+
+
+
+
+
