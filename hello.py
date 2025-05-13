@@ -6,12 +6,15 @@
 
 import pandas as pd
 import plotly.express as px
-from preswald import text, plotly, table, sidebar, get_df, selectbox, slider, connect
+from preswald import text, plotly, table, sidebar, get_df, selectbox, slider, connect, image, query, separator
 
 connect()
 
 # --- Header ---
-text("# Magnum, B.I.: The Case of the Vanishing Profits")
+text("## The Data Science Detective Series Presents:")
+text("# The Case of the Vanishing Profits")
+text("## by Magnum B.I.")
+image("images/detective.png", width=150)
 
 # --- Welcome Message ---
 text("""
@@ -62,32 +65,51 @@ df["Returned"] = df["Returned"].astype(str)
 
 
 
-# --- Onboarding Section ---
-text("""
-This interactive dashboard takes you on a journey through the Superstore's performance data.
-Through a series of compelling visualizations, we'll uncover the stories hidden in the numbers
-and reveal insights that can drive business success.
-""")
+# --- Onboarding Section (Accordion) ---
+text("## 📚 How to Use This Dashboard")
 
-text("""
-### How to Navigate
-- 🔍 Use filters to explore different aspects of the data
-- 📊 Hover over charts for detailed information
-- 💡 Look for insights below each visualization
-""")
+# Create an accordion-like component using selectbox
+show_onboarding = selectbox("Show/Hide Onboarding", ["Hide Onboarding", "Show Onboarding"], default="Hide Onboarding")
 
+if show_onboarding == "Show Onboarding":
+    text("""
+    This interactive dashboard takes you on a journey through the Superstore's performance data.
+    Through a series of compelling visualizations, we'll uncover the stories hidden in the numbers
+    and reveal insights that can drive business success.
+    """)
+
+    text("""
+    ### How to Navigate
+
+    - 🔍 Use filters - such as the dropdowns and sliders - to see differenct features of the data
+    >>Filters show different features or points of view of the data
+    - 📊 Hover over charts for detailed information
+    - 💡 Look for insights below each visualization
+    - 📈 Adjust the time scale to see how sales and profits change over time
+    - 📊 Filter by region to see how different areas perform
+    - 📈 Adjust the discount range to see how discounts affect profits
+    - 📊 Filter by returned status to see how returns impact profits
+    - 📈 Adjust the profit margin range to see how different categories perform
+    - click on the labels in the legend to hide and show different features
+    - click on the title of the chart to see the data behind the chart  
+    We're alwayus uopdatring the evidence filew, so every time you check out the data, check out the onboarding section
+    """)
 
 
 
 # --- Main Case File ---
 text("## Main Case File")
+text("### The Evidence Table")
+df = get_df(source_name="merged_data", table_name="best_sellers_data2")
+table(df, title="Original Data")
+
+sql = "SELECT * FROM best_sellers_data2 WHERE product_star_rating > 4.5 AND product_num_ratings > 20"
+filtered_df = query(sql, "best_sellers_data2")
+table(filtered_df, title="Filtered Data - Products with Star Ratings above 4.5 and Number of Ratings above 20")
+separator()
+
 text("""
-**Case File: Superstore - The Vanishing Profits**
-
-Welcome, Detective Partner. I'm Magnum B.I.—a specialist in unsolved business mysteries. 
-The CEO of Superstore has called us in: Sales are soaring, numbers look golden on paper, but profits aren't showing up where expected. Something's fishy in the books and it's up to us to follow the data trail.
-
-**The Suspects:**  
+*The Suspects:*  
 - Different Regions lurking with mismatched numbers  
 - Product Categories & Sub-Categories, some draining resources  
 - Discounts that seduce sales but possibly murder profits  
@@ -390,10 +412,3 @@ Whatever you decide, you've followed the data trail with true detective grit!
 """)
 
 table(stringify_dates(df))
-
-
-
-
-
-
-
