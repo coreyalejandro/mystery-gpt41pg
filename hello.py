@@ -6,53 +6,21 @@
 
 import pandas as pd
 import plotly.express as px
-from preswald import text, plotly, table, sidebar, get_df, selectbox, slider, connect, image, query, separator
+from preswald import text, plotly, table, sidebar, get_df, selectbox, slider, connect, separator, chat
 
 connect()
 
-# --- Header ---
-text("## The Data Science Detective Series Presents:")
-text("# The Case of the Vanishing Profits")
-text("## by Magnum B.I.")
-image("images/detective.png", width=150)
-
-# --- Welcome Message ---
-text("""
-Welcome, Detective Partner. I'm Magnum B.I.—a specialist in unsolved business mysteries.
-The CEO of Superstore has called us in: Sales are soaring, numbers look golden on paper, but profits aren't showing up where expected. Something's fishy in the books and it's up to us to follow the data trail.
-""")
-
-# Define a rich, deep color palette
-COLOR_PALETTE = [
-    "#1E3D59",  # Deep Navy Blue
-    "#FF6B6B",  # Rich Coral Red
-    "#4B8F8C",  # Deep Teal
-    "#7B2CBF",  # Rich Purple
-    "#FFC13B",  # Deep Gold
-    "#2D6A4F",  # Forest Green
-    "#9E2A2B",  # Deep Wine Red
-    "#335C67",  # Steel Blue
-    "#B68D40",  # Rich Bronze
-    "#540B0E"   # Deep Burgundy
-]
-
 # Utility: Convert all datetime columns to string for serialization
-
 def stringify_dates(df):
+    if df is None:
+        return None
     df = df.copy()
     for col in df.columns:
         if pd.api.types.is_datetime64_any_dtype(df[col]):
             df[col] = df[col].astype(str)
     return df
 
-
-# --- Sidebar ---
-sidebar(text("# Magnum, B.I."))
-sidebar(text("## Mystery of the Vanishing Profits"))
-sidebar(text("---"))
-sidebar(text("Explore the dramatic story of sales and profits through interactive visualizations."))
-
-# --- Data Loading and Preprocessing ---
+# Utility for categories/regions
 df = get_df("merged_data")
 df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
 df["Profit"] = pd.to_numeric(df["Profit"], errors="coerce")
@@ -63,49 +31,35 @@ df["Month"] = df["Order Date"].dt.strftime('%Y-%m')
 df["Profit Margin %"] = df["Profit"] / df["Sales"] * 100
 df["Returned"] = df["Returned"].astype(str)
 
+# --- Sidebar ---
+sidebar(text("# Magnum, B.I."))
+sidebar(text("## Mystery of the Vanishing Profits"))
+sidebar(text("---"))
+sidebar(text("Explore the dramatic story of sales and profits through interactive visualizations."))
 
+# --- Onboarding Section ---text("# Welcome to the Superstore Saga")
+text("""
+This interactive dashboard takes you on a journey through the Superstore's performance data.
+Through a series of compelling visualizations, we'll uncover the stories hidden in the numbers
+and reveal insights that can drive business success.
+""")
 
-# --- Onboarding Section (Accordion) ---
-text("## 📚 How to Use This Dashboard")
-
-# Create an accordion-like component using selectbox
-show_onboarding = selectbox("Show/Hide Onboarding", ["Hide Onboarding", "Show Onboarding"], default="Hide Onboarding")
-
-if show_onboarding == "Show Onboarding":
-    text("""
-    This interactive dashboard takes you on a journey through the Superstore's performance data.
-    Through a series of compelling visualizations, we'll uncover the stories hidden in the numbers
-    and reveal insights that can drive business success.
-    """)
-
-    text("""
-    ### How to Navigate
-
-    - 🔍 Use filters - such as the dropdowns and sliders - to see differenct features of the data
-    >>Filters show different features or points of view of the data
-    - 📊 Hover over charts for detailed information
-    - 💡 Look for insights below each visualization
-    - 📈 Adjust the time scale to see how sales and profits change over time
-    - 📊 Filter by region to see how different areas perform
-    - 📈 Adjust the discount range to see how discounts affect profits
-    - 📊 Filter by returned status to see how returns impact profits
-    - 📈 Adjust the profit margin range to see how different categories perform
-    - click on the labels in the legend to hide and show different features
-    - click on the title of the chart to see the data behind the chart  
-    We're alwayus uopdatring the evidence filew, so every time you check out the data, check out the onboarding section
-    """)
-
+text("""
+### How to Navigate
+- 🔍 Use filters to explore different aspects of the data
+- 📊 Hover over charts for detailed information
+- 💡 Look for insights below each visualization
+""")
 
 
 # --- Main Case File ---
 text("## Main Case File")
 text("### The Evidence Table")
-df = get_df(source_name="merged_data", table_name="best_sellers_data2")
-table(df, title="Original Data")
+table(stringify_dates(df), title="Original Data")
+separator()
 
-sql = "SELECT * FROM best_sellers_data2 WHERE product_star_rating > 4.5 AND product_num_ratings > 20"
-filtered_df = query(sql, "best_sellers_data2")
-table(filtered_df, title="Filtered Data - Products with Star Ratings above 4.5 and Number of Ratings above 20")
+threshold = slider("Threshold", min_val=-10000, max_val=10000, default=0)
+table(stringify_dates(df[df["Profit"] > threshold]), title="Dynamic Data View Based on Threshold Value")
 separator()
 
 text("""
@@ -118,10 +72,6 @@ text("""
 Ready to crack the case? Let's follow the trail!
 """)
 
-# Utility for categories/regions
-categories = ["All"] + sorted([str(x) for x in df["Category"].unique() if pd.notnull(x)])
-regions = ["All"] + sorted([str(x) for x in df["Region"].unique() if pd.notnull(x)])
-
 
 # --- Chapter 1 ---
 text("## Chapter 1: The Big Picture — Sales vs. Profit Overview")
@@ -130,7 +80,7 @@ text("""
 > Each point represents an order. X shows Sales, Y shows Profit, color is Region.  
 > Select a Category to see its pattern—do some attract profit, others danger?
 """)
-selected_category = selectbox("Category (filter)", categories, default="All")
+selected_category = selectbox("Category (filter)", ["All"] + sorted([str(x) for x in df["Category"].unique() if pd.notnull(x)]), default="All")
 if selected_category != "All":
     df1 = df[df["Category"] == selected_category]
 else:
@@ -180,7 +130,7 @@ text("""
 > See Sales and Profits for each Region.  
 > Filter Category to watch shifts in the evidence.
 """)
-selected_cat3 = selectbox("Category (filter for region)", categories, default="All")
+selected_cat3 = selectbox("Category (filter for region)", ["All"] + sorted([str(x) for x in df["Category"].unique() if pd.notnull(x)]), default="All")
 df3 = df[df["Category"] == selected_cat3] if selected_cat3 != "All" else df
 grp3 = df3.groupby("Region")[["Sales", "Profit"]].sum().reset_index()
 fig3 = px.bar(
@@ -200,7 +150,7 @@ text("""
 > Below, a stacked bar shows Profits by Category and Sub-Category.  
 > Focus on a Region to reveal its suspects.
 """)
-selected_region_4 = selectbox("Region (for Category Clues)", regions, default="All")
+selected_region_4 = selectbox("Region (for Category Clues)", ["All"] + sorted([str(x) for x in df["Region"].unique() if pd.notnull(x)]), default="All")
 df4 = df[df["Region"] == selected_region_4] if selected_region_4 != "All" else df
 grp4 = df4.groupby(["Category", "Sub-Category"]).agg({"Sales": "sum", "Profit": "sum"}).reset_index()
 fig4 = px.bar(
@@ -287,7 +237,7 @@ text("""
 > Filter by Category and see which regions are plagued by product boomerangs.
 """)
 
-selected_category_7 = selectbox("Category (filter for returns)", categories, default="All")
+selected_category_7 = selectbox("Category (filter for returns)", ["All"] + sorted([str(x) for x in df["Category"].unique() if pd.notnull(x)]), default="All")
 df7 = df[df["Category"] == selected_category_7] if selected_category_7 != "All" else df
 grp7 = df7.groupby(["Region", "Returned"]).agg({"Sales": "sum", "Profit": "sum"}).reset_index()
 
@@ -401,7 +351,6 @@ fig10.update_layout(height=400)
 plotly(fig10)
 
 
-
 text("""
 **Case Closed:**  
 So detective, who's the true culprit behind Superstore's vanishing profits?  
@@ -411,4 +360,10 @@ Whatever you decide, you've followed the data trail with true detective grit!
 **Thank you for helping Magnum B.I. close the Mystery of the Vanishing Profits. Case dismissed!**
 """)
 
-table(stringify_dates(df))
+# --- Chat with Magnum B.I. ---
+text("## Chat with Magnum B.I.")
+
+table(stringify_dates(df), title="Original Data")
+
+chat(source="merged_data")  # Queries 'sample_csv'
+chat(source="merged_data")  # Defaults to all sources
