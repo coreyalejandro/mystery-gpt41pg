@@ -8,6 +8,12 @@ import pandas as pd
 import plotly.express as px
 from preswald import text, plotly, table, sidebar, get_df, selectbox, slider, connect, separator, chat
 
+# Import tomllib from the standard library (Python 3.11+), fallback to tomli for older versions
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
 connect()
 
 # Utility: Convert all datetime columns to string for serialization
@@ -32,20 +38,18 @@ df["Profit Margin %"] = df["Profit"] / df["Sales"] * 100
 df["Returned"] = df["Returned"].astype(str)
 
 # --- Sidebar ---
-sidebar(text("# Magnum, B.I."))
-sidebar(text("## Mystery of the Vanishing Profits"))
+sidebar(text("# 🕵🏾‍♂️ Magnum, B.I. — The Mystery of the Vanishing Profits"))
 sidebar(text("---"))
-sidebar(text("Explore the dramatic story of sales and profits through interactive visualizations."))
 
-# --- Onboarding Section ---text("# Welcome to the Superstore Saga")
+# --- Onboarding Section ---
 text("""
-This interactive dashboard takes you on a journey through the Superstore's performance data.
-Through a series of compelling visualizations, we'll uncover the stories hidden in the numbers
-and reveal insights that can drive business success.
+Welcome, Detective Partner. I'm Magnum B.I.—a specialist in unsolved business mysteries. 
+The CEO of Superstore has called us in: Sales are soaring, numbers look golden on paper, but profits aren't 
+showing up where expected. Something's fishy in the books and it's up to us to follow the data trail.
 """)
 
 text("""
-### How to Navigate
+### How to Navigate the Case (Dashboard)
 - 🔍 Use filters to explore different aspects of the data
 - 📊 Hover over charts for detailed information
 - 💡 Look for insights below each visualization
@@ -203,12 +207,17 @@ text("""
 > Tighten or loosen the discount range below to check its effect.
 """)
 
-min_disc, max_disc = float(df["Discount"].min()), float(df["Discount"].max())
-selected_disc_range = slider("Discount Range", min_disc, max_disc, (min_disc, max_disc))
+min_disc = round(float(df["Discount"].min()), 2)
+max_disc = round(float(df["Discount"].max()), 2)
+if min_disc == max_disc:
+    slider_min_disc, slider_max_disc = 0.0, 1.0
+else:
+    slider_min_disc, slider_max_disc = min_disc, max_disc
+selected_disc_range = slider("Discount Range", min_val=slider_min_disc, max_val=slider_max_disc, default=(slider_min_disc, slider_max_disc), step=0.01)
 if isinstance(selected_disc_range, (tuple, list)) and len(selected_disc_range) == 2:
     selected_min_disc, selected_max_disc = selected_disc_range
 else:
-    selected_min_disc = selected_max_disc = min_disc
+    selected_min_disc = selected_max_disc = slider_min_disc
 
 df6 = df[(df["Discount"] >= selected_min_disc) & (df["Discount"] <= selected_max_disc)]
 
@@ -360,10 +369,20 @@ Whatever you decide, you've followed the data trail with true detective grit!
 **Thank you for helping Magnum B.I. close the Mystery of the Vanishing Profits. Case dismissed!**
 """)
 
-# --- Chat with Magnum B.I. ---
-text("## Chat with Magnum B.I.")
 
-table(stringify_dates(df), title="Original Data")
+# Get all data sources
+with open("preswald.toml", "rb") as f:
+    config = tomllib.load(f)
 
-chat(source="merged_data")  # Queries 'sample_csv'
-chat(source="merged_data")  # Defaults to all sources
+source_list = []
+for source_path in config["data"]:
+    source_list.append(source_path)
+ 
+# Create a selectbox for choosing a column to visualize
+source_choice = selectbox(
+    label="Choose a dataset as chat source",
+    options=source_list,
+)
+
+# Create an AI chat window using the selected source!
+chat(source_choice)
